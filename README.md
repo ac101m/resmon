@@ -1,2 +1,2 @@
-#resmon
-A simple monitoring script for multiple remote machines, written for convenience for a cluster I built for fun.
+# resmon
+A simple resource monitoring script for multiple remote machines, designed to look cool more than anything else.

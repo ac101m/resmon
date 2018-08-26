@@ -13,8 +13,10 @@ def get_command_string(connection):
 
 
 # Get data string from /proc/stat
-def get_data_string():
-	return 'Hello world'
+def get_raw_cpu_util():
+	with open('/proc/stat', 'r') as statfile:
+		data = statfile.read()
+	return data
 
 
 
@@ -34,35 +36,31 @@ def main():
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	s.bind(('', int(port)))
 	s.listen(1)
-	
-	# Wait for a connection
-	print('%s:%s - Waiting for connection... ' % (name, port), end = ''); sys.stdout.flush()
 	connection, addr = s.accept()
-	print('Established.')
 
 	# Go into main service loop
 	while True:
 
-		# Get the command string from the socket
+		# Get the command, then handle it
 		command = get_command_string(connection)
-
-		# Empty command = quit
-		if not command:
-			break
 		
 		# Command to request
-		elif command == 'RESPOND':
-			connection.sendall(get_data_string().encode('utf-8'))
+		if command == 'REQUEST_CPU_UTIL':
+			connection.sendall(get_raw_cpu_util().encode('utf-8'))
 
-		# Command was not recognised
+		# Empty command = stop
+		elif command:
+			print('Recieved null command, stopping responder.')
+			break
+			
+		# Command was not recognised = stop
 		else:
-			print('Command %s not recognised.' % command)
-			sys.exit(1)
+			print('Command %s not recognised, stopping responder.' % command)
+			break;
 
-	# Close the socket
-	print('%s - Server exiting.' % (name))
+	# Close the connection
 	connection.close()
-
+	
 
 
 # Make this behave like a boring old c program
