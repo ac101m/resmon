@@ -11,6 +11,7 @@ import time
 from rm_host import resmon_host
 
 
+
 # Constants
 COMM_PORT = 9867
 
@@ -19,11 +20,15 @@ COMM_PORT = 9867
 def build_option_parser():
 
 	# Brief description of script
-	parser = argparse.ArgumentParser(description = 'Monitor CPU usage of remote hosts.')
+	parser = argparse.ArgumentParser(description = 'Monitor CPU usage of a number of remote hosts. Connects via ssh, so make sure you have passwordless ssh set up for the hosts you want to monitor.')
 
 	# Add address information to the arguments
-	parser.add_argument('-a', '--addresses', nargs = '+', required = False,
-						help = 'List of remote hosts to monitor. Must be accessible by passworldess ssh.')
+	parser.add_argument('-a', '--addresses', nargs = '+', required = True,
+						help = 'List of remote hosts to monitor.')
+
+	# Allows user to set update delay
+	parser.add_argument('-d', '--delay', type = float, default = 1, required = False,
+						help = 'Set delay between updates.')
 
 	# Return the constructed parser
 	return parser
@@ -41,16 +46,18 @@ def main():
 	for i in range(0, len(args.addresses)):
 		hosts.append(resmon_host(args.addresses[i], COMM_PORT))
 
-	# Get response from each host and print it
-	time.sleep(1)
-	for i in range(0, len(hosts)):
-		print(hosts[i].get_response('REQUEST_CPU_UTIL'))
-
-	# Exit
-	sys.exit(0)
+	# Update each host
+	while True:
+		time.sleep(args.delay)
+		for i in range(0, len(hosts)):
+			hosts[i].update()
+			print(100 - hosts[i].stat.cpu.total.idle)
 	
 
 # Make this behave like a boring old c program
 if __name__ == '__main__':
-	main()
+	try:
+		main()
+	except KeyboardInterrupt:
+		print('\nRecieved KB interrupt, quitting monitor.')
 

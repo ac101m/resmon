@@ -5,7 +5,8 @@ import socket
 import sys
 
 
-# Get command string from a socket
+
+# Get command string from a socket connection
 def get_command_string(connection):
 	command = connection.recv(1024).decode()
 	return command
@@ -14,55 +15,88 @@ def get_command_string(connection):
 
 # Get data string from /proc/stat
 def get_raw_cpu_util():
-	with open('/proc/stat', 'r') as statfile:
-		data = statfile.read()
-	return data
+	string = ''	
+
+	# Open /proc/stat and read all the lines
+	with open('/proc/stat', 'r') as fp:
+		lines = fp.readlines()
+
+	# Remove the interrupt line (it's big, and we don't need it)
+	for line in lines:
+		if 'intr' not in line:
+			string = string + line
+
+	# Return the lines
+	return string
 
 
 
 # Main routine
 def main():
 
+	# Check that name and port have been specified
+	if len(sys.argv) < 3:
+		sys.stderr.write('Error, not enough arguments. Stopping responder.')
+		sys.exit(1)
+
 	# Extract command line parameters
 	name = sys.argv[1]
 	port = sys.argv[2]
 
-	# Check that the port has been specified
-	if len(sys.argv) < 3:
-		sys.stderr.write('Error, not enough arguments. Closing.')
+	# Try to create the socket object
+	try:
+		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		s.bind(('', int(port)))
+		s.listen(1)
+	except:
+		print('Failed to open socket. Stopping responder.')
 		sys.exit(1)
 
-	# Create socket object
-	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	s.bind(('', int(port)))
-	s.listen(1)
-	connection, addr = s.accept()
+	# Info message indicating that the responder is running
+	print('Responder listening on port %s, Cntrl+C to shut down responder.' % port)
 
 	# Go into main service loop
 	while True:
 
-		# Get the command, then handle it
+		# Wait for a connection & recieve command
+		connection, addr = s.accept()
 		command = get_command_string(connection)
-		
-		# Command to request
-		if command == 'REQUEST_CPU_UTIL':
-			connection.sendall(get_raw_cpu_util().encode('utf-8'))
+		print("Recieved '%s' from %s - " % (command, addr), end = '')
 
-		# Empty command = stop
-		elif command:
-			print('Recieved null command, stopping responder.')
-			break
+		# Return ping command
+		if command == 'REQUEST_PING':
+			print("Sending ping ack.")
+			connection.sendall('REQUEST_PING_ACK'.encode('utf-8'))
+			connection.close()			
+
+		# Command to request cpu utilisation data (/proc/stat)
+		elif command == 'REQUEST_STAT':
+			print("Sending stat data.")
+			connection.sendall(get_raw_cpu_util().encode('utf-8'))
+			connection.close()
 			
-		# Command was not recognised = stop
-		else:
-			print('Command %s not recognised, stopping responder.' % command)
+		# Command to request shutdown of remote process
+		elif command == 'REQUEST_STOP':
+			print('Stopping responder.')
+			connection.sendall('REQUEST_STOP_ACK'.encode('utf-8'))
+			connection.close()
 			break;
 
-	# Close the connection
-	connection.close()
+		# Unrecognised command, quit
+		else:
+			print("Command '%s' not recognised, stopping responder." % command)
+			connection.close()
+			break;
 	
+	# Close the socket now that we are done with it
+	s.close()	
 
 
 # Make this behave like a boring old c program
 if __name__ == '__main__':
-	main()
+	try:
+		main()
+	except KeyboardInterrupt:
+		print('\nRecieved KB interrupt, quitting responder.')
+
