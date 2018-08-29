@@ -9,12 +9,12 @@ import sys
 # Class to contain all statistics
 class resmon_stat:
 
-	cpu = None			# CPU usage related stats
+	cpu = None		# CPU usage related stats
 	
 
 	# Constructor
 	def __init__(self, source):
-		
+
 		# Split source into lines for parsing
 		lines = source.split('\n')
 		i = 0
@@ -51,7 +51,7 @@ class resmon_stat:
 class resmon_cpu:
 
 	total = None 		# Agregate readings for all CPUs
-	core = []			# Readings for individual cores
+	cores = []			# Readings for individual cores
 
 	
 	# Constructor, parses a list of 'cpun' lines
@@ -61,25 +61,43 @@ class resmon_cpu:
 		self.total = resmon_core(source[0])
 
 		# Iterate over the other lines adding cores
+		self.cores = []
 		for i in range(1, len(source)):
-			self.core.append(resmon_core(source[i]))
+			self.cores.append(resmon_core(source[i]))
 
 
 	# Update method, updates CPU utilisation
 	def update(self, source):
-		
+
 		# Check that number of strings matches core count
-		if len(source) != len(self.core) + 1:
-			print("CPU core count appears to have changed. Was %d, now %d." % (len(self.core), len(source) - 1))
+		if len(source) != len(self.cores) + 1:
+			print("CPU core count appears to have changed. Was %d, now %d." % (len(self.cores), len(source) - 1))
 			sys.exit(1)
 
 		# Update the agregate "core" stats
 		self.total.update(source[0])
 
 		# Update the other cores
-		for i in range(0, len(self.core)):
-			self.core[i].update(source[i + 1])
+		for i in range(0, len(self.cores)):
+			self.cores[i].update(source[i + 1])
 
+	
+	# Generate usage bar strings for all cores, with a certain number of cores per line (placeholder)
+	def string(self, cores_per_line, max_line_length):
+		
+		core_bar_length = int(max_line_length / cores_per_line)
+
+		lines = []
+		line = ''
+		for i in range(0, len(self.cores)):
+			line += self.cores[i].string(core_bar_length)
+			if i % cores_per_line == cores_per_line - 1:
+				for i in range(0, max_line_length % cores_per_line):
+					line += ' '
+				lines.append(line)
+				line = ''
+
+		return lines
 
 
 # Class contains stats of a single processor
@@ -97,7 +115,7 @@ class resmon_core:
 	softirq = 0.0		# Software interrupt handlers
 
 
-	# Constructor, parses a single 'cpun' line
+	# Constructor, sets up the data structure ready for evaluation later
 	def __init__(self, source):
 		
 		# Initialise, setting name and idle to 100%
@@ -127,14 +145,63 @@ class resmon_core:
 			total += int(components[i]) - int(components_prev[i])
 
 		# Calculate percentages
-		self.user = (float(int(components[1]) - int(components_prev[1])) / total) * 100
-		self.nice = (float(int(components[2]) - int(components_prev[2])) / total) * 100
-		self.system = (float(int(components[3]) - int(components_prev[3])) / total) * 100
-		self.idle = (float(int(components[4]) - int(components_prev[4])) / total) * 100
-		self.iowait = (float(int(components[5]) - int(components_prev[5])) / total) * 100
-		self.irq = (float(int(components[6]) - int(components_prev[6])) / total) * 100
-		self.softirq = (float(int(components[7]) - int(components_prev[7])) / total) * 100
+		try:
+			self.user = (float(int(components[1]) - int(components_prev[1])) / total) * 100
+			self.nice = (float(int(components[2]) - int(components_prev[2])) / total) * 100
+			self.system = (float(int(components[3]) - int(components_prev[3])) / total) * 100
+			self.idle = (float(int(components[4]) - int(components_prev[4])) / total) * 100
+			self.iowait = (float(int(components[5]) - int(components_prev[5])) / total) * 100
+			self.irq = (float(int(components[6]) - int(components_prev[6])) / total) * 100
+			self.softirq = (float(int(components[7]) - int(components_prev[7])) / total) * 100
+		except ZeroDivisionError:
+			self.user = self.nice = self.system = self.iowait = self.irq = self.softirq = 0
+			self.idle = 100
 
 		# Set prev source
 		self.prev_source = source
-		
+
+
+	# Generate a usage bar string of certain length
+	def string(self, length):
+
+		# Value of each character in the bar
+		chunk_value = 100 / (length - 2)
+		percentage_string = '%.1f%%' % (100 - self.idle)
+
+		# Begin the string with
+		string = '\033[1;37m[\033[0m'
+
+		# Colour table, colours for the bar
+		col = [(self.user, '\033[32m'),
+			   (self.nice, '\033[34m'),	
+			   (self.system, '\033[31m'),
+			   (self.irq, '\033[33m'),
+			   (self.softirq, '\033[35m'),
+			   (self.iowait, '\033[90m'),
+			   (self.idle, '\033[1;90m')]
+
+		# Generate the usage bar
+		j = 0; k = 0; col_threshold = 0
+		for i in range(0, length - 2):
+
+			# Do colour stuff
+			while True:
+				if i * chunk_value >= col_threshold:
+					col_threshold += col[k][0]
+					string += col[k][1]
+					k += 1
+				else:
+					break
+
+			# Do character stuff
+			if i < (length - 2) - len(percentage_string):
+				if i * chunk_value < 100 - self.idle: string += '|'
+				else: string += ' '
+			else:
+				string += percentage_string[j]
+				j += 1
+
+		# Terminate the string and reset the colour
+		string += '\033[1;37m]\033[0m'
+		return string
+

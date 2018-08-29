@@ -7,6 +7,7 @@ import sys
 import os
 import socket
 import time
+import threading
 
 from rm_host import resmon_host
 
@@ -34,6 +35,17 @@ def build_option_parser():
 	return parser
 
 
+# Starts the timer thread and returns it
+def start_timer_thread(delay):
+	
+	# Start the scheduler thread
+	thread = threading.Thread(target = time.sleep, args = (delay,))
+	thread.start()
+
+	# Return the thread so that we can wait on it to achieve a delay
+	return thread
+
+
 # Main routine
 def main():
 
@@ -41,17 +53,43 @@ def main():
 	parser = build_option_parser()
 	args = parser.parse_args()
 
+	# Start the wait thread thread for non blocking delay
+	timer_thread = start_timer_thread(args.delay)
+
 	# Intialise array of hosts
 	hosts = []
-	for i in range(0, len(args.addresses)):
-		hosts.append(resmon_host(args.addresses[i], COMM_PORT))
+	for address in args.addresses:
+		hosts.append(resmon_host(address, COMM_PORT))
 
-	# Update each host
+
+	# Clear the screen	
+	print('\033[1J', end = '')
+	print('\033[;H', end = '')
+
+	# Update each host in a loop
 	while True:
-		time.sleep(args.delay)
-		for i in range(0, len(hosts)):
-			hosts[i].update()
-			print(100 - hosts[i].stat.cpu.total.idle)
+
+		# Wait for the scheduler thread to finish, then restart it
+		timer_thread.join()
+		timer_thread = start_timer_thread(args.delay)
+		
+		# Get terminal dimensions
+		rows, columns = os.popen('stty size', 'r').read().split()
+
+		# Do the updates and generate the print string
+		lines = []
+		for host in hosts:
+			host.update()
+			lines.extend(host.stat.cpu.string(4, int(columns)))
+
+		# Move cursor to top left, then print everything
+		line_number = 1
+		for line in lines:
+			print('\033[%d;1f' % line_number, end = line)
+			line_number += 1
+		
+		# Flush standard out to perform the print
+		sys.stdout.flush()
 	
 
 # Make this behave like a boring old c program
@@ -59,5 +97,5 @@ if __name__ == '__main__':
 	try:
 		main()
 	except KeyboardInterrupt:
-		print('\nRecieved KB interrupt, quitting monitor.')
+		print('Recieved KB interrupt, quitting monitor.')
 

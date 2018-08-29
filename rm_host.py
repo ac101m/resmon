@@ -47,7 +47,8 @@ class resmon_host:
 		self.test_remote_responder()
 
 		# Get remote responder output and initialise stats
-		self.stat = resmon_stat(self.send_request('REQUEST_STAT'))
+		stat_raw = self.send_request('REQUEST_STAT')
+		self.stat = resmon_stat(stat_raw)
 
 
 	# Starts the responder script on the remote host
@@ -60,9 +61,9 @@ class resmon_host:
 
 		# Open subprocess via ssh on remote, pipe everything into /dev/null.
 		command = 'ssh %s %s/rm_respond.py %s %d' % (self.address, abspath, self.name, self.port)
-		#self.process = subprocess.Popen(shlex.split(command), 
-		#								stdout = subprocess.DEVNULL,
-		#								stderr = subprocess.DEVNULL)
+		self.process = subprocess.Popen(shlex.split(command), 
+										stdout = subprocess.DEVNULL,
+										stderr = subprocess.DEVNULL)
 
 		
 	# Repeatedly try to ping the remote responder until it succeeds
