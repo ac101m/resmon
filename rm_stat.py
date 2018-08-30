@@ -153,28 +153,30 @@ class resmon_core:
 	def update(self, source):
 
 		# Split the input strings by spaces
-		components_prev = list(filter(bool, self.prev_source.split(' ')))
-		components = list(filter(bool, source.split(' ')))
+		val_prev = list(filter(bool, self.prev_source.split(' ')))
+		val = list(filter(bool, source.split(' ')))
 
 		# Check that core name matches
-		if components[0] != self.name:
+		if val[0] != self.name:
 			print('Processor name appears to have changed. Was %s, now %s.' % (self.name, components[0]))
 			sys.exit(1)
 			
 		# Get total for all fields in string
 		total = 0
-		for i in range(1, len(components_prev)):
-			total += int(components[i]) - int(components_prev[i])
+		for i in range(1, len(val_prev)):
+			total += int(val[i]) - int(val_prev[i])
 
 		# Calculate percentages
+		ema_new = 1
+		ema_old = 1 - ema_new
 		try:
-			self.user = (float(int(components[1]) - int(components_prev[1])) / total) * 100
-			self.nice = (float(int(components[2]) - int(components_prev[2])) / total) * 100
-			self.system = (float(int(components[3]) - int(components_prev[3])) / total) * 100
-			self.idle = (float(int(components[4]) - int(components_prev[4])) / total) * 100
-			self.iowait = (float(int(components[5]) - int(components_prev[5])) / total) * 100
-			self.irq = (float(int(components[6]) - int(components_prev[6])) / total) * 100
-			self.softirq = (float(int(components[7]) - int(components_prev[7])) / total) * 100
+			self.user 		= (self.user * ema_old) 	+ ((float(int(val[1]) - int(val_prev[1])) / total) * ema_new * 100)
+			self.nice 		= (self.nice * ema_old) 	+ ((float(int(val[2]) - int(val_prev[2])) / total) * ema_new * 100)
+			self.system 	= (self.system * ema_old) 	+ ((float(int(val[3]) - int(val_prev[3])) / total) * ema_new * 100)
+			self.idle 		= (self.idle * ema_old) 	+ ((float(int(val[4]) - int(val_prev[4])) / total) * ema_new * 100)
+			self.iowait 	= (self.iowait * ema_old) 	+ ((float(int(val[5]) - int(val_prev[5])) / total) * ema_new * 100)
+			self.irq 		= (self.irq * ema_old) 		+ ((float(int(val[6]) - int(val_prev[6])) / total) * ema_new * 100)
+			self.softirq 	= (self.softirq * ema_old) 	+ ((float(int(val[7]) - int(val_prev[7])) / total) * ema_new * 100)
 		except ZeroDivisionError:
 			self.user = self.nice = self.system = self.iowait = self.irq = self.softirq = 0
 			self.idle = 100
@@ -218,7 +220,7 @@ class resmon_core:
 
 			# Do character stuff
 			if i < (length - 2) - len(percentage_string):
-				if i * chunk_value < 100 - self.idle: 
+				if (i + 0.5) * chunk_value < 100 - self.idle: 
 					window.addstr('|', current_col)
 				else: 
 					window.addch(' ')
@@ -229,52 +231,4 @@ class resmon_core:
 		# End of bar raises an exception if you write to the bottom corner of a window
 		try: window.addch(']')
 		except: pass
-		
-
-
-	# Generate an ansi coloured usage bar string of certain length (deprecated)
-	def string(self, length):
-
-		# Value of each character in the bar
-		chunk_value = 100 / (length - 2)
-		percentage_string = '%.1f%%' % (100 - self.idle)
-
-		# Begin the string with
-		string = '['
-		string = '\033[1;37m[\033[0m'
-
-		# Colour table, colours for the bar
-		col = [(self.user, '\033[32m'),
-			   (self.nice, '\033[34m'),	
-			   (self.system, '\033[31m'),
-			   (self.irq, '\033[33m'),
-			   (self.softirq, '\033[35m'),
-			   (self.iowait, '\033[90m'),
-			   (self.idle, '\033[1;90m')]
-
-		# Generate the usage bar
-		j = 0; k = 0; col_threshold = 0
-		for i in range(0, length - 2):
-
-			# Do colour stuff
-			while True:
-				if i * chunk_value >= col_threshold:
-					col_threshold += col[k][0]
-					string += col[k][1]
-					k += 1
-				else:
-					break
-
-			# Do character stuff
-			if i < (length - 2) - len(percentage_string):
-				if i * chunk_value < 100 - self.idle: string += '|'
-				else: string += ' '
-			else:
-				string += percentage_string[j]
-				j += 1
-
-		# Terminate the string and reset the colour
-		string += ']'
-		string += '\033[1;37m]\033[0m'
-		return string
 
