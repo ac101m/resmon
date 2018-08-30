@@ -3,6 +3,8 @@
 
 import rm_host
 import sys
+import curses
+from math import ceil
 
 
 
@@ -10,7 +12,7 @@ import sys
 class resmon_stat:
 
 	cpu = None		# CPU usage related stats
-	
+
 
 	# Constructor
 	def __init__(self, source):
@@ -44,6 +46,19 @@ class resmon_stat:
 
 		# Update cpu usage using the CPU lines
 		self.cpu.update(cpu_source)
+
+
+	# Just pass render onto CPU for now
+	def render(self, screen):
+
+		# Create a new window
+		cores_per_line = 4
+
+		# Render CPU info to the window
+		self.cpu.render(screen, cores_per_line)
+
+		# Return the number of lines used by this host on the screen
+		return ceil(len(self.cpu.cores) / cores_per_line)
 
 
 
@@ -83,21 +98,28 @@ class resmon_cpu:
 
 	
 	# Generate usage bar strings for all cores, with a certain number of cores per line (placeholder)
-	def string(self, cores_per_line, max_line_length):
-		
-		core_bar_length = int(max_line_length / cores_per_line)
+	def render(self, screen, cores_per_line):
 
-		lines = []
-		line = ''
+		# Temporary core position math
+		screen_height, screen_width = screen.getmaxyx()
+		core_bar_length = int(screen_width / cores_per_line)
+
+		# For all cores
+		cursor_y, cursor_x = screen.getyx()
+		initial_cursor_x = cursor_x
 		for i in range(0, len(self.cores)):
-			line += self.cores[i].string(core_bar_length)
-			if i % cores_per_line == cores_per_line - 1:
-				for i in range(0, max_line_length % cores_per_line):
-					line += ' '
-				lines.append(line)
-				line = ''
+			
+			# Render the core to the window at the specified position
+			screen.move(cursor_y, cursor_x)
+			self.cores[i].render(screen, core_bar_length)
 
-		return lines
+			# Calculate position of next core bar
+			if i % cores_per_line == cores_per_line - 1:
+				cursor_x = initial_cursor_x
+				cursor_y += 1
+			else:
+				cursor_x += core_bar_length
+
 
 
 # Class contains stats of a single processor
@@ -161,7 +183,56 @@ class resmon_core:
 		self.prev_source = source
 
 
-	# Generate a usage bar string of certain length
+	# Renders the datastructure to a curses window
+	def render(self, window, length):
+
+		# Value of each character in the bar
+		chunk_value = 100 / (length - 2)
+		percentage_string = '%.1f%%' % (100 - self.idle)
+		
+		# Bar start
+		window.addch('[')
+
+		# Color table
+		col = [(self.user, curses.color_pair(3)),
+			   (self.nice, curses.color_pair(5)),	
+			   (self.system, curses.color_pair(2)),
+			   (self.irq, curses.color_pair(4)),
+			   (self.softirq, curses.color_pair(6)),
+			   (self.iowait, curses.color_pair(9)),
+			   (self.idle, curses.color_pair(9))]
+
+		# Generate the usage bar
+		current_col = None
+		j = 0; k = 0; col_threshold = 0
+		for i in range(0, length - 2):
+
+			# Do colour stuff
+			while True:
+				if i * chunk_value >= col_threshold:
+					col_threshold += col[k][0]
+					current_col = col[k][1]
+					k += 1
+				else:
+					break
+
+			# Do character stuff
+			if i < (length - 2) - len(percentage_string):
+				if i * chunk_value < 100 - self.idle: 
+					window.addstr('|', current_col)
+				else: 
+					window.addch(' ')
+			else:
+				window.addstr(percentage_string[j], current_col)
+				j += 1
+
+		# End of bar raises an exception if you write to the bottom corner of a window
+		try: window.addch(']')
+		except: pass
+		
+
+
+	# Generate an ansi coloured usage bar string of certain length (deprecated)
 	def string(self, length):
 
 		# Value of each character in the bar
@@ -169,6 +240,7 @@ class resmon_core:
 		percentage_string = '%.1f%%' % (100 - self.idle)
 
 		# Begin the string with
+		string = '['
 		string = '\033[1;37m[\033[0m'
 
 		# Colour table, colours for the bar
@@ -202,6 +274,7 @@ class resmon_core:
 				j += 1
 
 		# Terminate the string and reset the colour
+		string += ']'
 		string += '\033[1;37m]\033[0m'
 		return string
 

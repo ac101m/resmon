@@ -8,8 +8,9 @@ import socket
 import atexit
 import time
 import shlex
+import curses
 
-from rm_stat import *
+from rm_stat import resmon_stat
 
 
 
@@ -107,11 +108,31 @@ class resmon_host:
 
 
 	# Update CPU utilisation
-	def update(self):
+	def update_stats(self):
 		
 		# Request data from remote responder and update host stats
 		stat_raw = self.send_request('REQUEST_STAT')
 		self.stat.update(stat_raw)
+
+	
+	# Render the host
+	def render(self, screen):
+
+		# Read cursor position
+		cursor_y, cursor_x = screen.getyx()
+		screen_height, screen_width = screen.getmaxyx()
+		
+		# Render the host status bar
+		status_string = self.name + ' - CONNECTED'
+		while len(status_string) < screen_width: status_string += ' '
+		screen.addstr(status_string, curses.A_REVERSE | curses.A_BOLD | curses.color_pair(246))
+
+		# Move the cursor, then render the stats area
+		screen.move(cursor_y + 1, cursor_x)
+		host_line_count = self.stat.render(screen) + 1
+
+		# Return the number of lines used on this host
+		return host_line_count
 
 
 	# Destructor, cleans up subprocess
