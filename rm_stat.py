@@ -167,7 +167,7 @@ class resmon_core:
 			total += int(val[i]) - int(val_prev[i])
 
 		# Calculate percentages
-		ema_new = 1
+		ema_new = 0.5
 		ema_old = 1 - ema_new
 		try:
 			self.user 		= (self.user * ema_old) 	+ ((float(int(val[1]) - int(val_prev[1])) / total) * ema_new * 100)
@@ -185,7 +185,7 @@ class resmon_core:
 		self.prev_source = source
 
 
-	# Renders the datastructure to a curses window
+	# Renders a core bar to the curses window
 	def render(self, window, length):
 
 		# Value of each character in the bar
@@ -228,7 +228,6 @@ class resmon_core:
 				window.addstr(percentage_string[j], current_col)
 				j += 1
 
-		# End of bar raises an exception if you write to the bottom corner of a window
-		try: window.addch(']')
-		except: pass
+		# End of bar
+		window.addch(']')
 

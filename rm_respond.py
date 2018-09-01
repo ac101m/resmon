@@ -36,7 +36,7 @@ def main():
 
 	# Check that name and port have been specified
 	if len(sys.argv) < 3:
-		sys.stderr.write('Error, not enough arguments. Stopping responder.')
+		sys.stderr.write('Error, not enough arguments. Stopping responder.\n')
 		sys.exit(1)
 
 	# Extract command line parameters

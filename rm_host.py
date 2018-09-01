@@ -121,7 +121,7 @@ class resmon_host:
 		# Read cursor position
 		cursor_y, cursor_x = screen.getyx()
 		screen_height, screen_width = screen.getmaxyx()
-		
+
 		# Render the host status bar
 		status_string = self.name + ' - CONNECTED'
 		while len(status_string) < screen_width: status_string += ' '

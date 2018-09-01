@@ -18,25 +18,7 @@ from rm_host import resmon_host
 
 # Constants
 COMM_PORT = 9867
-
-
-
-# Builds the command line parameter parser
-def build_option_parser():
-
-	# Brief description of script
-	parser = argparse.ArgumentParser(description = 'Monitor CPU usage of a number of remote hosts.')
-
-	# Add address information to the arguments
-	parser.add_argument('-a', '--addresses', nargs = '+', required = True,
-						help = 'List of remote hosts to monitor. Uses passwordless ssh to connect.')
-
-	# Allows user to set update delay
-	parser.add_argument('-d', '--delay', type = float, default = 1, required = False,
-						help = 'Set delay between updates.')
-
-	# Return the constructed parser
-	return parser
+ARGS = None
 
 
 
@@ -54,25 +36,29 @@ def start_timer_thread(delay):
 
 # Re-draw the screen
 def redraw(screen, hosts):
+	
+	# Erase the screen
+	screen.erase()
+
+	# Get display dimensions
+	screen_max_y, screen_max_x = screen.getmaxyx()
 
 	# Generate host windows
-	cursor_y = 0
-	for host in hosts:
-		screen.move(cursor_y, 0)
-		host_displacement = host.render(screen)
-		cursor_y += host_displacement
+	try:
+		cursor_y = 0
+		for host in hosts:
+			screen.move(cursor_y, 0)
+			host_displacement = host.render(screen)
+			cursor_y += host_displacement
+	except:
+		pass
 
 	# Refresh and clear the screen
 	screen.refresh()
-	screen.erase()
 
 
 # Main routine
 def main(screen):
-
-	# Add parser options and parse command line arguments
-	parser = build_option_parser()
-	args = parser.parse_args()
 
 	# Initialise curses colors
 	curses.use_default_colors()
@@ -85,11 +71,11 @@ def main(screen):
 	screen.refresh()
 
 	# Start the wait thread thread for non blocking delay
-	timer_thread = start_timer_thread(args.delay)
+	timer_thread = start_timer_thread(ARGS.delay)
 
 	# Intialise array of hosts
 	hosts = []
-	for address in args.addresses:
+	for address in ARGS.addresses:
 		hosts.append(resmon_host(address, COMM_PORT))
 
 	# Define a resize handler
@@ -109,7 +95,7 @@ def main(screen):
 
 		# Wait for the scheduler thread to finish, then restart it
 		timer_thread.join()
-		timer_thread = start_timer_thread(args.delay)
+		timer_thread = start_timer_thread(ARGS.delay)
 
 		# Update host stats
 		for host in hosts:
@@ -117,8 +103,33 @@ def main(screen):
 
 
 
+# Builds the command line parameter parser
+def build_option_parser():
+
+	# Brief description of script
+	parser = argparse.ArgumentParser(description = 'Monitor resource usage on a number of remote hosts.')
+
+	# Add address information to the arguments
+	parser.add_argument('-a', '--addresses', nargs = '+', required = True,
+						help = 'List of remote hosts to monitor. Uses passwordless ssh to connect.')
+
+	# Allows user to set update delay
+	parser.add_argument('-d', '--delay', type = float, default = 1, required = False,
+						help = 'Set delay between updates in seconds.')
+
+	# Return the constructed parser
+	return parser
+
+
+
 # Make this behave like a boring old c program
 if __name__ == '__main__':
+
+	# Parse command line arguments, help etc
+	parser = build_option_parser()
+	ARGS = parser.parse_args()
+	
+	# Run curses program
 	try:
 		wrapper(main)		# This is a curses application
 	except KeyboardInterrupt:
