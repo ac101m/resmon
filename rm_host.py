@@ -9,8 +9,10 @@ import atexit
 import time
 import shlex
 import curses
+from math import ceil
 
 from rm_stat import resmon_stat
+from utils import vec2
 
 
 
@@ -116,23 +118,25 @@ class resmon_host:
 
 	
 	# Render the host
-	def render(self, screen):
+	def render(self, screen, position, width):
 
-		# Read cursor position
-		cursor_y, cursor_x = screen.getyx()
-		screen_height, screen_width = screen.getmaxyx()
+		# Select number of cores per line, use constant for now
+		cores_per_line = 4
+
+		# Calculate the size of the host
+		size = vec2(width, ceil(len(self.stat.cpu.cores) / cores_per_line) + 1)
 
 		# Render the host status bar
 		status_string = self.name + ' - CONNECTED'
-		while len(status_string) < screen_width: status_string += ' '
-		screen.addstr(status_string, curses.A_REVERSE | curses.A_BOLD | curses.color_pair(246))
+		while len(status_string) < width: status_string += ' '
+		screen.move(position.y, position.x)
+		screen.addstr(status_string)
 
-		# Move the cursor, then render the stats area
-		screen.move(cursor_y + 1, cursor_x)
-		host_line_count = self.stat.render(screen) + 1
+		# Render the stats area at a given position with a given width
+		self.stat.render(screen, vec2(position.x, position.y + 1), width, cores_per_line)
 
 		# Return the number of lines used on this host
-		return host_line_count
+		return size
 
 
 	# Destructor, cleans up subprocess

@@ -13,6 +13,7 @@ import signal
 from curses import wrapper
 
 from rm_host import resmon_host
+from utils import vec2
 
 
 
@@ -36,24 +37,23 @@ def start_timer_thread(delay):
 
 # Re-draw the screen
 def redraw(screen, hosts):
-	
-	# Erase the screen
-	screen.erase()
 
-	# Get display dimensions
+	screen.erase()
 	screen_max_y, screen_max_x = screen.getmaxyx()
+	
+	# Host positioning
+	width = screen_max_x - 2
+	position = vec2(1, 1)
 
 	# Generate host windows
-	try:
-		cursor_y = 0
-		for host in hosts:
-			screen.move(cursor_y, 0)
-			host_displacement = host.render(screen)
-			cursor_y += host_displacement
-	except:
-		pass
+	#try:
+	for host in hosts:
+		size = host.render(screen, position, width)
+		position.y += size.y
+	#except:
+	#	pass
 
-	# Refresh and clear the screen
+	# Refresh the screen
 	screen.refresh()
 
 
