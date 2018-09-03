@@ -10,10 +10,11 @@ from utils import vec2
 
 
 
-# Class to contain all statistics
+# Container class for host resource utilisation data
 class resmon_stat:
 
 	cpu = None		# CPU usage related stats
+	mem = None
 
 
 	# Constructor
@@ -21,16 +22,20 @@ class resmon_stat:
 
 		# Split source into lines for parsing
 		lines = source.split('\n')
-		i = 0
 
 		# Get lines that contain CPU utilisation
 		cpu_source = []
-		while 'cpu' in lines[i]:
-			cpu_source.append(lines[i])
-			i += 1
+		mem_source = []
+		for line in lines:
+			if 'cpu' in line: cpu_source.append(line)
+			if 'Mem' in line: mem_source.append(line)
+			if 'Buffers' in line: mem_source.append(line)
+			if 'Cached' in line: mem_source.append(line)
+			if 'Swap' in line: mem_source.append(line)
 
-		# Initialise CPU portion of the stat file
+		# Initialise CPU and memory utilisation data
 		self.cpu = resmon_cpu(cpu_source)
+		self.mem = resmon_memory(mem_source)
 
 
 	# Update method, parses a response datagram from the remote responder (a long ass string)
@@ -38,16 +43,20 @@ class resmon_stat:
 		
 		# Split source into lines for parsing
 		lines = source.split('\n')
-		i = 0
 
 		# Get lines that contain CPU utilisation
 		cpu_source = []
-		while 'cpu' in lines[i]:
-			cpu_source.append(lines[i])
-			i += 1
+		mem_source = []
+		for line in lines:
+			if 'cpu' in line: cpu_source.append(line)
+			if 'Mem' in line: mem_source.append(line)
+			if 'Buffers' in line: mem_source.append(line)
+			if 'Cached' in line: mem_source.append(line)
+			if 'Swap' in line: mem_source.append(line)
 
-		# Update cpu usage using the CPU lines
+		# Initialise CPU and memory utilisation data
 		self.cpu.update(cpu_source)
+		self.mem.update(mem_source)
 
 
 	# Just pass render onto CPU for now
@@ -58,7 +67,48 @@ class resmon_stat:
 
 
 
-# Class serves as a container for a sample of core usage data
+# Container class for memory utilisation data
+class resmon_memory:
+
+	# Memory
+	mem_total = None
+	mem_free = None
+	mem_avail = None
+	mem_buf = None
+	mem_cache = None
+
+	# Page file
+	swap_total = None
+	swap_free = None
+
+
+	# Constructor, initialises data from source string
+	def __init__(self, source):
+		
+		# Just call update
+		self.update(source)
+
+
+	# Update from source
+	def update(self, source):
+
+		# Memory and swap usage
+		for line in source:
+			if 'MemTotal' in line: 		self.mem_total 		= int(list(filter(bool, line.split(' ')))[1])
+			if 'MemFree' in line: 		self.mem_free 		= int(list(filter(bool, line.split(' ')))[1])
+			if 'MemAvailable' in line:	self.mem_avail 		= int(list(filter(bool, line.split(' ')))[1])
+			if 'Buffers' in line:		self.mem_buf 		= int(list(filter(bool, line.split(' ')))[1])
+			if 'Cached' in line:		self.mem_cache 		= int(list(filter(bool, line.split(' ')))[1])
+			if 'SwapTotal' in line:		self.swap_total 	= int(list(filter(bool, line.split(' ')))[1])
+			if 'SwapFree' in line:		self.swap_free 		= int(list(filter(bool, line.split(' ')))[1])
+
+
+	# Render memory and swap bars
+	def render(self, screen, position, width, cores_per_line):
+		return
+
+
+# Container class for cpu utilisation data
 class resmon_cpu:
 
 	total = None 		# Agregate readings for all CPUs
@@ -115,7 +165,7 @@ class resmon_cpu:
 
 
 
-# Class contains stats of a single processor
+# Container class for the single core utilisation data
 class resmon_core:
 
 	prev_source = ''	# Source strings used for the last update
@@ -160,7 +210,7 @@ class resmon_core:
 			total += int(val[i]) - int(val_prev[i])
 
 		# Calculate percentages
-		ema_new = 0.5
+		ema_new = 1
 		ema_old = 1 - ema_new
 		try:
 			self.user 		= (self.user * ema_old) 	+ ((float(int(val[1]) - int(val_prev[1])) / total) * ema_new * 100)
@@ -187,7 +237,7 @@ class resmon_core:
 
 		# Color table
 		col = [(self.user, curses.color_pair(3)),
-			   (self.nice, curses.color_pair(5)),	
+			   (self.nice, curses.color_pair(5)),
 			   (self.system, curses.color_pair(2)),
 			   (self.irq, curses.color_pair(4)),
 			   (self.softirq, curses.color_pair(6)),

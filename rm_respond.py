@@ -23,8 +23,17 @@ def get_raw_cpu_util():
 
 	# Remove the interrupt line (it's big, and we don't need it)
 	for line in lines:
-		if 'intr' not in line:
-			string = string + line
+		if 'intr' not in line: string = string + line
+
+	# Now read the memory usage information
+	with open('/proc/meminfo', 'r') as fp:
+		lines = fp.readlines()
+
+	# Append only the lines we want (the first 5, then swap)
+	for i in range(0, len(lines)):
+		if i < 5: string += lines[i]
+		elif 'SwapTotal:' in lines[i]: string += lines[i]
+		elif 'SwapFree:' in lines[i]: string += lines[i]
 
 	# Return the lines
 	return string
@@ -83,11 +92,10 @@ def main():
 			connection.close()
 			break;
 
-		# Unrecognised command, quit
+		# Unrecognised command, ignore
 		else:
-			print("Command '%s' not recognised, stopping responder." % command)
+			print("Command '%s' not recognised, closing socket." % command)
 			connection.close()
-			break;
 	
 	# Close the socket now that we are done with it
 	s.close()	

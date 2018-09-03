@@ -42,16 +42,20 @@ def redraw(screen, hosts):
 	screen_max_y, screen_max_x = screen.getmaxyx()
 	
 	# Host positioning
-	width = screen_max_x - 2
-	position = vec2(1, 1)
+	width = screen_max_x
+	position = vec2(0, 0)
 
 	# Generate host windows
-	#try:
-	for host in hosts:
-		size = host.render(screen, position, width)
-		position.y += size.y
-	#except:
-	#	pass
+	try:
+		for host in hosts:
+			size = host.render(screen, position, width)
+			position.y += size.y + 1
+	except:
+		more_string = 'V  MORE  V'
+		screen.move(screen_max_y - 1, 0)
+		screen.clrtoeol()
+		screen.move(screen_max_y - 1, int((screen_max_x - len(more_string)) / 2))
+		screen.addstr(more_string)
 
 	# Refresh the screen
 	screen.refresh()
@@ -119,7 +123,7 @@ def build_option_parser():
 
 	# Return the constructed parser
 	return parser
-
+ 
 
 
 # Make this behave like a boring old c program
