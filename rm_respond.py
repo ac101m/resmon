@@ -65,7 +65,7 @@ def main():
 	# Info message indicating that the responder is running
 	print('Responder listening on port %s, Cntrl+C to shut down responder.' % port)
 
-	# Go into main service loop
+	# Main service loop
 	while True:
 
 		# Wait for a connection & recieve command

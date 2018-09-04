@@ -120,12 +120,6 @@ class resmon_host:
 	# Render the host
 	def render(self, screen, position, width):
 
-		# Select number of cores per line, use constant for now
-		cores_per_line = 4
-
-		# Calculate the size of the host
-		size = vec2(width, ceil(len(self.stat.cpu.cores) / cores_per_line) + 1)
-
 		# Render the host status bar
 		status_string = self.name + ' - CONNECTED'
 		while len(status_string) < width: status_string += ' '
@@ -133,10 +127,10 @@ class resmon_host:
 		screen.addstr(status_string)
 
 		# Render the stats area at a given position with a given width
-		self.stat.render(screen, vec2(position.x, position.y + 1), width, cores_per_line)
+		stat_lines = self.stat.render(screen, vec2(position.x, position.y), width)
 
 		# Return the number of lines used on this host
-		return size
+		return vec2(width, stat_lines)
 
 
 	# Destructor, cleans up subprocess

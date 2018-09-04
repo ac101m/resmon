@@ -7,6 +7,7 @@ import curses
 from math import ceil
 
 from utils import vec2
+from utils import mem_string
 
 
 
@@ -59,11 +60,25 @@ class resmon_stat:
 		self.mem.update(mem_source)
 
 
-	# Just pass render onto CPU for now
-	def render(self, screen, position, width, cores_per_line):
+	# Render CPU and memory
+	def render(self, screen, position, width):
 
-		# Render CPU info to the window
-		self.cpu.render(screen, position, width, cores_per_line)
+		# Temporary, will do proper core placement math here
+		cores_per_line = 4
+		core_bar_length = int(width / cores_per_line)
+		core_line_length = core_bar_length * cores_per_line
+		mem_bar_length = int(core_line_length / 2)
+
+		# Render memory info
+		mem_position = vec2(position.x + (core_line_length - mem_bar_length), position.y)
+		mem_lines = self.mem.render(screen, mem_position, mem_bar_length)
+
+		# Render CPU info to window
+		cpu_position = vec2(position.x, position.y + mem_lines)
+		cpu_lines = self.cpu.render(screen, cpu_position, width, cores_per_line)
+
+		# Return the vertical size of the render
+		return cpu_lines + mem_lines
 
 
 
@@ -94,18 +109,102 @@ class resmon_memory:
 
 		# Memory and swap usage
 		for line in source:
-			if 'MemTotal' in line: 		self.mem_total 		= int(list(filter(bool, line.split(' ')))[1])
-			if 'MemFree' in line: 		self.mem_free 		= int(list(filter(bool, line.split(' ')))[1])
-			if 'MemAvailable' in line:	self.mem_avail 		= int(list(filter(bool, line.split(' ')))[1])
-			if 'Buffers' in line:		self.mem_buf 		= int(list(filter(bool, line.split(' ')))[1])
-			if 'Cached' in line:		self.mem_cache 		= int(list(filter(bool, line.split(' ')))[1])
-			if 'SwapTotal' in line:		self.swap_total 	= int(list(filter(bool, line.split(' ')))[1])
-			if 'SwapFree' in line:		self.swap_free 		= int(list(filter(bool, line.split(' ')))[1])
+			if 'MemTotal' in line: 		self.mem_total 		= int(list(filter(bool, line.split(' ')))[1]) * 1024
+			if 'MemFree' in line: 		self.mem_free 		= int(list(filter(bool, line.split(' ')))[1]) * 1024
+			if 'MemAvailable' in line:	self.mem_avail 		= int(list(filter(bool, line.split(' ')))[1]) * 1024
+			if 'Buffers' in line:		self.mem_buf 		= int(list(filter(bool, line.split(' ')))[1]) * 1024
+			if 'Cached' in line:		self.mem_cache 		= int(list(filter(bool, line.split(' ')))[1]) * 1024
+			if 'SwapTotal' in line:		self.swap_total 	= int(list(filter(bool, line.split(' ')))[1]) * 1024
+			if 'SwapFree' in line:		self.swap_free 		= int(list(filter(bool, line.split(' ')))[1]) * 1024
 
 
 	# Render memory and swap bars
-	def render(self, screen, position, width, cores_per_line):
-		return
+	def render(self, screen, position, length):
+
+		# Draw the memory bar
+		self.render_mem(screen, position, length)
+
+		# Draw the swap bar
+		swap_position = vec2(position.x, position.y + 1)
+		self.render_swap(screen, swap_position, length)
+
+		# Return number of lines used
+		return 2
+
+
+	# Render memory bar
+	def render_mem(self, screen, position, length):
+		
+		# Print the start of the bar
+		label = 'Mem '
+		screen.move(position.y, position.x - len(label))
+		screen.addstr(label)
+		screen.addstr('[')
+
+		# Segment value
+		segment_value = self.mem_total / (length - 2)
+		mem_used = self.mem_total - self.mem_free
+		usage_string = '%s/%s' % (mem_string(mem_used), mem_string(self.mem_total))
+
+		# Draw the bar
+		current_col = curses.color_pair(3)
+		j = 0; k = 0
+		for i in range(0, length - 2):
+			
+			# Do color stuff
+			if (i + 0.5) * segment_value >= self.mem_total - self.mem_free:
+				current_col = curses.color_pair(9)
+			
+			# Do character stuff
+			if i < (length - 2) - len(usage_string):
+				if (i + 0.5) * segment_value < self.mem_total - self.mem_free: 
+					screen.addstr('|', current_col)
+				else: 
+					screen.addstr(' ')
+			else:
+				screen.addstr(usage_string[j], current_col)
+				j += 1
+
+		# Close the bar
+		screen.addstr(']')
+
+	
+	# Render swap bar
+	def render_swap(self, screen, position, length):
+
+		# Print the start of the bar
+		label = 'Swap '
+		screen.move(position.y, position.x - len(label))
+		screen.addstr(label)
+		screen.addstr('[')
+
+		# Segment value
+		segment_value = self.mem_total / (length - 2)
+		swap_used = self.swap_total - self.swap_free
+		usage_string = '%s/%s' % (mem_string(swap_used), mem_string(self.swap_total))
+
+		# Draw the bar
+		current_col = curses.color_pair(3)
+		j = 0; k = 0
+		for i in range(0, length - 2):
+			
+			# Do color stuff
+			if (i + 0.5) * segment_value >= self.swap_total - self.swap_free:
+				current_col = curses.color_pair(9)
+
+			# Do character stuff
+			if i < (length - 2) - len(usage_string):
+				if (i + 0.5) * segment_value < self.swap_total - self.swap_free: 
+					screen.addstr('|', current_col)
+				else: 
+					screen.addstr(' ')
+			else:
+				screen.addstr(usage_string[j], current_col)
+				j += 1
+
+		# Close the bar
+		screen.addstr(']')
+
 
 
 # Container class for cpu utilisation data
@@ -163,6 +262,9 @@ class resmon_cpu:
 			else:
 				core_position.x += core_bar_length
 
+		# Return the number of lines used for cores
+		return ceil(len(self.cores) / cores_per_line)
+
 
 
 # Container class for the single core utilisation data
@@ -210,7 +312,7 @@ class resmon_core:
 			total += int(val[i]) - int(val_prev[i])
 
 		# Calculate percentages
-		ema_new = 1
+		ema_new = 0.5
 		ema_old = 1 - ema_new
 		try:
 			self.user 		= (self.user * ema_old) 	+ ((float(int(val[1]) - int(val_prev[1])) / total) * ema_new * 100)

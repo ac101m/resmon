@@ -47,10 +47,13 @@ def redraw(screen, hosts):
 
 	# Generate host windows
 	try:
-		for host in hosts:
-			size = host.render(screen, position, width)
+		for i in range(0, len(hosts)):
+			size = hosts[i].render(screen, position, width)
+			if i != len(hosts) - 1:
+				screen.move(position.y + size.y, position.x)
+				for j in range(0, screen_max_x): screen.addstr('-')
 			position.y += size.y + 1
-	except:
+	except curses.error:
 		more_string = 'V  MORE  V'
 		screen.move(screen_max_y - 1, 0)
 		screen.clrtoeol()
