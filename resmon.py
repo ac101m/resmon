@@ -25,7 +25,7 @@ ARGS = None
 
 # Starts the timer thread and returns it
 def start_timer_thread(delay):
-	
+
 	# Start the scheduler thread
 	thread = threading.Thread(target = time.sleep, args = (delay,))
 	thread.start()
@@ -40,10 +40,11 @@ def redraw(screen, hosts):
 
 	screen.erase()
 	screen_max_y, screen_max_x = screen.getmaxyx()
-	
+
 	# Host positioning
 	width = screen_max_x
 	position = vec2(0, 0)
+	more_string = 'V  MORE  V'
 
 	# Generate host windows
 	try:
@@ -54,7 +55,7 @@ def redraw(screen, hosts):
 				for j in range(0, screen_max_x): screen.addstr('-')
 			position.y += size.y + 1
 	except curses.error:
-		more_string = 'V  MORE  V'
+		screen_max_y, screen_max_x = screen.getmaxyx()
 		screen.move(screen_max_y - 1, 0)
 		screen.clrtoeol()
 		screen.move(screen_max_y - 1, int((screen_max_x - len(more_string)) / 2))
@@ -64,13 +65,14 @@ def redraw(screen, hosts):
 	screen.refresh()
 
 
+
 # Main routine
 def main(screen):
 
 	# Initialise curses colors
 	curses.use_default_colors()
 	for i in range(0, curses.COLORS):
-		curses.init_pair(i+1, i, -1)
+		curses.init_pair(i + 1, i, -1)
 
 	# Clear and update the screen, disable the cursor
 	curses.curs_set(0)
@@ -90,9 +92,9 @@ def main(screen):
 		rows, columns = os.popen('stty size', 'r').read().split()
 		curses.resizeterm(int(rows), int(columns))
 		redraw(screen, hosts)
-	
+
 	# Register the handler with the resize signal
-	signal.signal(signal.SIGWINCH, resize_handler) 
+	signal.signal(signal.SIGWINCH, resize_handler)
 
 	# Main update loop
 	while True:
@@ -126,7 +128,7 @@ def build_option_parser():
 
 	# Return the constructed parser
 	return parser
- 
+
 
 
 # Make this behave like a boring old c program
@@ -135,10 +137,9 @@ if __name__ == '__main__':
 	# Parse command line arguments, help etc
 	parser = build_option_parser()
 	ARGS = parser.parse_args()
-	
+
 	# Run curses program
 	try:
 		wrapper(main)		# This is a curses application
 	except KeyboardInterrupt:
 		print('Recieved KB interrupt, quitting monitor.')
-

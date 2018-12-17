@@ -31,7 +31,7 @@ class resmon_host:
 	address = None		# IP address of the remote host
 	port = None			# Port for communication with remote responder
 
-	# Stat struct	
+	# Stat struct
 	stat = None
 
 
@@ -64,11 +64,11 @@ class resmon_host:
 
 		# Open subprocess via ssh on remote, pipe everything into /dev/null.
 		command = 'ssh %s %s/rm_respond.py %s %d' % (self.address, abspath, self.name, self.port)
-		self.process = subprocess.Popen(shlex.split(command), 
+		self.process = subprocess.Popen(shlex.split(command),
 										stdout = subprocess.DEVNULL,
 										stderr = subprocess.DEVNULL)
 
-		
+
 	# Repeatedly try to ping the remote responder until it succeeds
 	def test_remote_responder(self):
 		trycount = 0
@@ -90,7 +90,7 @@ class resmon_host:
 
 	# Send request and recieve response
 	def send_request(self, request):
-		
+
 		# Open the socket and send the command
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		s.connect((self.address, self.port))
@@ -111,12 +111,12 @@ class resmon_host:
 
 	# Update CPU utilisation
 	def update_stats(self):
-		
+
 		# Request data from remote responder and update host stats
 		stat_raw = self.send_request('REQUEST_STAT')
 		self.stat.update(stat_raw)
 
-	
+
 	# Render the host
 	def render(self, screen, position, width):
 
@@ -140,4 +140,3 @@ class resmon_host:
 		if self.process is not None:
 			self.send_request('REQUEST_STOP')
 			self.process.wait()
-
