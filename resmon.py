@@ -16,11 +16,9 @@ from rm_host import resmon_host
 from utils import vec2
 
 
-
 # Constants
 COMM_PORT = 9867
 ARGS = None
-
 
 
 # Starts the timer thread and returns it
@@ -34,7 +32,6 @@ def start_timer_thread(delay):
 	return thread
 
 
-
 # Re-draw the screen
 def redraw(screen, hosts):
 
@@ -46,14 +43,21 @@ def redraw(screen, hosts):
 	position = vec2(0, 0)
 	more_string = 'V  MORE  V'
 
-	# Generate host windows
+	# Print the hosts
 	try:
 		for i in range(0, len(hosts)):
+
+			# Render the host
 			size = hosts[i].render(screen, position, width)
+			position.y += size.y
+
+			# Print a divider line
 			if i != len(hosts) - 1:
-				screen.move(position.y + size.y, position.x)
+				screen.move(position.y, position.x)
 				for j in range(0, screen_max_x): screen.addstr('-')
-			position.y += size.y + 1
+			position.y += 1
+
+	# This happens when printing runs off the end of the terminal (usually)
 	except curses.error:
 		screen_max_y, screen_max_x = screen.getmaxyx()
 		screen.move(screen_max_y - 1, 0)
@@ -64,6 +68,16 @@ def redraw(screen, hosts):
 	# Refresh the screen
 	screen.refresh()
 
+
+# Update hosts in parallel
+def update_hosts(hosts, timeout):
+	threads = []
+	for host in hosts:
+		thread = threading.Thread(target = host.update(timeout))
+		thread.start()
+		threads.append(thread)
+	for thread in threads:
+		thread.join()
 
 
 # Main routine
@@ -107,9 +121,7 @@ def main(screen):
 		timer_thread = start_timer_thread(ARGS.delay)
 
 		# Update host stats
-		for host in hosts:
-			host.update_stats()
-
+		update_hosts(hosts, timeout = ARGS.delay / 2)
 
 
 # Builds the command line parameter parser
@@ -128,7 +140,6 @@ def build_option_parser():
 
 	# Return the constructed parser
 	return parser
-
 
 
 # Make this behave like a boring old c program

@@ -21,15 +21,24 @@ SOCK_CONNECT_TRY_LIMIT = 20
 SOCK_CONNECT_TRY_DELAY = 0.1
 
 
+# Host status constants
+RM_HOST_ONLINE = 0
+RM_HOST_CONNECTION_LOST = 1
+RM_HOST_OFFLINE = 2
+
 
 # Class serves as an interface to an rm_respond instance running on a remote host.
 class resmon_host:
 
 	# General stuff
-	process = None		# Subprocess handle for ssh
-	name = None			# Name of the remote host
-	address = None		# IP address of the remote host
-	port = None			# Port for communication with remote responder
+	process = None				# Subprocess handle for ssh
+	name = None					# Name of the remote host
+	address = None				# IP address of the remote host
+	port = None					# Port for communication with remote responder
+
+	# Host connection status
+	status = RM_HOST_OFFLINE
+	status_trycount = 0
 
 	# Stat struct
 	stat = None
@@ -44,14 +53,11 @@ class resmon_host:
 		self.port = port
 
 		# Start responder on the remote host via ssh
-		self.start_remote_responder()
-
-		# Check that the remote responder responds
-		self.test_remote_responder()
+		#self.start_remote_responder()
 
 		# Get remote responder output and initialise stats
-		stat_raw = self.send_request('REQUEST_STAT')
-		self.stat = resmon_stat(stat_raw)
+		self.update()
+
 
 
 	# Starts the responder script on the remote host
@@ -89,10 +95,11 @@ class resmon_host:
 
 
 	# Send request and recieve response
-	def send_request(self, request):
+	def send_request(self, request, timeout = 1):
 
 		# Open the socket and send the command
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		s.settimeout(timeout)
 		s.connect((self.address, self.port))
 		s.sendall(request.encode('utf-8'))
 
@@ -110,27 +117,56 @@ class resmon_host:
 
 
 	# Update CPU utilisation
-	def update_stats(self):
+	def update(self, timeout = 1):
 
-		# Request data from remote responder and update host stats
-		stat_raw = self.send_request('REQUEST_STAT')
-		self.stat.update(stat_raw)
+		# Try to get the data
+		try:
+			stat_raw = self.send_request('REQUEST_STAT', timeout)
+		except:
+			self.status = RM_HOST_OFFLINE
+			return
+
+		# Update stats, initialise if not initialised already
+		if self.stat == None:
+			self.stat = resmon_stat(stat_raw)
+		else:
+			self.stat.update(stat_raw)
+
+		# Indicate that we are online!
+		self.status = RM_HOST_ONLINE
+
+
+	# Renders host status seen at top of window
+	def render_status(self, screen, position, width):
+
+		# Start by displaying name
+		screen.move(position.y, position.x)
+		screen.addstr(self.name + ' - ')
+
+		# Print the status of the connection
+		if self.status == RM_HOST_ONLINE:
+		 	screen.addstr('CONNECTED', curses.color_pair(3))
+		elif self.status == RM_HOST_OFFLINE:
+		 	screen.addstr('OFFLINE', curses.color_pair(2))
+		else:
+		 	screen.addstr('? UNKONWN ?')
+
+		# Return the number of lines used
+		return 1
 
 
 	# Render the host
 	def render(self, screen, position, width):
 
-		# Render the host status bar
-		status_string = self.name + ' - CONNECTED'
-		while len(status_string) < width: status_string += ' '
-		screen.move(position.y, position.x)
-		screen.addstr(status_string)
+		# Render the host status
+		lines = self.render_status(screen, position, width)
 
-		# Render the stats area at a given position with a given width
-		stat_lines = self.stat.render(screen, vec2(position.x, position.y), width)
+		# Only render stats if the host is online or pending
+		if self.status != RM_HOST_OFFLINE:
+			lines = self.stat.render(screen, vec2(position.x, position.y), width)
 
 		# Return the number of lines used on this host
-		return vec2(width, stat_lines)
+		return vec2(width, lines)
 
 
 	# Destructor, cleans up subprocess

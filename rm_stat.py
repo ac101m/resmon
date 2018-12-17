@@ -41,7 +41,7 @@ class resmon_stat:
 
 	# Update method, parses a response datagram from the remote responder (a long ass string)
 	def update(self, source):
-		
+
 		# Split source into lines for parsing
 		lines = source.split('\n')
 
@@ -99,7 +99,7 @@ class resmon_memory:
 
 	# Constructor, initialises data from source string
 	def __init__(self, source):
-		
+
 		# Just call update
 		self.update(source)
 
@@ -134,7 +134,7 @@ class resmon_memory:
 
 	# Render memory bar
 	def render_mem(self, screen, position, length):
-		
+
 		# Print the start of the bar
 		label = 'Mem '
 		screen.move(position.y, position.x - len(label))
@@ -150,16 +150,16 @@ class resmon_memory:
 		current_col = curses.color_pair(3)
 		j = 0; k = 0
 		for i in range(0, length - 2):
-			
+
 			# Do color stuff
 			if (i + 0.5) * segment_value >= self.mem_total - self.mem_free:
 				current_col = curses.color_pair(9)
-			
+
 			# Do character stuff
 			if i < (length - 2) - len(usage_string):
-				if (i + 0.5) * segment_value < self.mem_total - self.mem_free: 
+				if (i + 0.5) * segment_value < self.mem_total - self.mem_free:
 					screen.addstr('|', current_col)
-				else: 
+				else:
 					screen.addstr(' ')
 			else:
 				screen.addstr(usage_string[j], current_col)
@@ -168,7 +168,7 @@ class resmon_memory:
 		# Close the bar
 		screen.addstr(']')
 
-	
+
 	# Render swap bar
 	def render_swap(self, screen, position, length):
 
@@ -187,16 +187,16 @@ class resmon_memory:
 		current_col = curses.color_pair(3)
 		j = 0; k = 0
 		for i in range(0, length - 2):
-			
+
 			# Do color stuff
 			if (i + 0.5) * segment_value >= self.swap_total - self.swap_free:
 				current_col = curses.color_pair(9)
 
 			# Do character stuff
 			if i < (length - 2) - len(usage_string):
-				if (i + 0.5) * segment_value < self.swap_total - self.swap_free: 
+				if (i + 0.5) * segment_value < self.swap_total - self.swap_free:
 					screen.addstr('|', current_col)
-				else: 
+				else:
 					screen.addstr(' ')
 			else:
 				screen.addstr(usage_string[j], current_col)
@@ -213,7 +213,7 @@ class resmon_cpu:
 	total = None 		# Agregate readings for all CPUs
 	cores = []			# Readings for individual cores
 
-	
+
 	# Constructor, parses a list of 'cpun' lines
 	def __init__(self, source):
 
@@ -241,7 +241,7 @@ class resmon_cpu:
 		for i in range(0, len(self.cores)):
 			self.cores[i].update(source[i + 1])
 
-	
+
 	# Generate usage bar strings for all cores, with a certain number of cores per line (placeholder)
 	def render(self, screen, position, width, cores_per_line):
 
@@ -251,7 +251,7 @@ class resmon_cpu:
 		# For all cores
 		core_position = vec2(position.x, position.y)
 		for i in range(0, len(self.cores)):
-			
+
 			# Render the core to the window at the specified position
 			self.cores[i].render(screen, core_position, core_bar_length)
 
@@ -284,7 +284,7 @@ class resmon_core:
 
 	# Constructor, sets up the data structure ready for evaluation later
 	def __init__(self, source):
-		
+
 		# Initialise, setting name and idle to 100%
 		components = list(filter(bool, source.split(' ')))
 		self.name = components[0]
@@ -292,7 +292,7 @@ class resmon_core:
 
 		# Initialise prev_source so that subsequent calls to update function correctly
 		self.prev_source = source
-		
+
 
 	# Update state with regards to previous state
 	def update(self, source):
@@ -305,7 +305,7 @@ class resmon_core:
 		if val[0] != self.name:
 			print('Processor name appears to have changed. Was %s, now %s.' % (self.name, components[0]))
 			sys.exit(1)
-			
+
 		# Get total for all fields in string
 		total = 0
 		for i in range(1, len(val_prev)):
@@ -345,7 +345,7 @@ class resmon_core:
 			   (self.softirq, curses.color_pair(6)),
 			   (self.iowait, curses.color_pair(9)),
 			   (self.idle, curses.color_pair(9))]
-		
+
 		# Move the cursor and begin rendering
 		screen.move(position.y, position.x)
 		screen.addstr('[')
@@ -366,9 +366,9 @@ class resmon_core:
 
 			# Do character stuff
 			if i < (length - 2) - len(percentage_string):
-				if (i + 0.5) * chunk_value < 100 - self.idle: 
+				if (i + 0.5) * chunk_value < 100 - self.idle:
 					screen.addstr('|', current_col)
-				else: 
+				else:
 					screen.addstr(' ')
 			else:
 				screen.addstr(percentage_string[j], current_col)
@@ -376,4 +376,3 @@ class resmon_core:
 
 		# End of bar
 		screen.addstr(']')
-
