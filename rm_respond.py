@@ -15,7 +15,7 @@ def get_command_string(connection):
 
 # Get data string from /proc/stat
 def get_raw_cpu_util():
-	string = ''	
+	string = ''
 
 	# Open /proc/stat and read all the lines
 	with open('/proc/stat', 'r') as fp:
@@ -63,7 +63,7 @@ def main():
 		sys.exit(1)
 
 	# Info message indicating that the responder is running
-	print('Responder listening on port %s, Cntrl+C to shut down responder.' % port)
+	print('Responder listening on port %s, Ctrl+C to shut down responder.' % port)
 
 	# Main service loop
 	while True:
@@ -71,34 +71,25 @@ def main():
 		# Wait for a connection & recieve command
 		connection, addr = s.accept()
 		command = get_command_string(connection)
-		print("Recieved '%s' from %s - " % (command, addr), end = '')
 
 		# Return ping command
 		if command == 'REQUEST_PING':
-			print("Sending ping ack.")
+			print("Recieved '%s' from %s - %s" % (command, addr, "Sending ping ack."))
 			connection.sendall('REQUEST_PING_ACK'.encode('utf-8'))
-			connection.close()			
+			connection.close()
 
 		# Command to request cpu utilisation data (/proc/stat)
 		elif command == 'REQUEST_STAT':
-			print("Sending stat data.")
 			connection.sendall(get_raw_cpu_util().encode('utf-8'))
 			connection.close()
-			
-		# Command to request shutdown of remote process
-		elif command == 'REQUEST_STOP':
-			print('Stopping responder.')
-			connection.sendall('REQUEST_STOP_ACK'.encode('utf-8'))
-			connection.close()
-			break;
 
 		# Unrecognised command, ignore
 		else:
 			print("Command '%s' not recognised, closing socket." % command)
 			connection.close()
-	
+
 	# Close the socket now that we are done with it
-	s.close()	
+	s.close()
 
 
 # Make this behave like a boring old c program
@@ -107,4 +98,3 @@ if __name__ == '__main__':
 		main()
 	except KeyboardInterrupt:
 		print('\nRecieved KB interrupt, quitting responder.')
-
