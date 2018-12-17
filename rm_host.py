@@ -56,7 +56,7 @@ class resmon_host:
 		#self.start_remote_responder()
 
 		# Get remote responder output and initialise stats
-		self.update()
+		self.update(0.1)
 
 
 
