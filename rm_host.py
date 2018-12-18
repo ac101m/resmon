@@ -17,8 +17,7 @@ from utils import vec2
 
 
 # constants
-SOCK_CONNECT_TRY_LIMIT = 20
-SOCK_CONNECT_TRY_DELAY = 0.1
+DEFAULT_SOCKET_TIMEOUT 0.1
 
 
 # Host status constants
@@ -54,11 +53,11 @@ class resmon_host:
 		self.port = port
 
 		# Get remote responder output and initialise stats
-		self.update(0.1)
+		self.update()
 
 
 	# Send request and recieve response
-	def send_request(self, request, timeout = 1):
+	def send_request(self, request, timeout = DEFAULT_SOCKET_TIMEOUT):
 
 		# Open the socket and send the command
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -70,7 +69,8 @@ class resmon_host:
 		response = ''
 		while True:
 			buf = s.recv(2048).decode('utf-8')
-			if len(buf) == 0: break
+			if len(buf) == 0:
+				break
 			else:
 				response = '%s%s' % (response, buf)
 
@@ -80,7 +80,7 @@ class resmon_host:
 
 
 	# Update CPU utilisation
-	def update(self, timeout = 1):
+	def update(self, timeout = DEFAULT_SOCKET_TIMEOUT):
 
 		# Try to get the data
 		try:
