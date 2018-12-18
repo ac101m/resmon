@@ -44,13 +44,12 @@ def get_raw_cpu_util():
 def main():
 
 	# Check that name and port have been specified
-	if len(sys.argv) < 3:
-		sys.stderr.write('Error, not enough arguments. Stopping responder.\n')
+	if len(sys.argv) < 2:
+		sys.stderr.write('Error, not enough arguments. Please specify listening port.\n')
 		sys.exit(1)
 
 	# Extract command line parameters
-	name = sys.argv[1]
-	port = sys.argv[2]
+	port = sys.argv[1]
 
 	# Try to create the socket object
 	try:
