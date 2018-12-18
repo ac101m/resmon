@@ -27,6 +27,7 @@ RM_HOST_CONNECTION_LOST = 1
 RM_HOST_OFFLINE = 2
 
 
+
 # Class serves as an interface to an rm_respond instance running on a remote host.
 class resmon_host:
 
@@ -52,46 +53,8 @@ class resmon_host:
 		self.address = name
 		self.port = port
 
-		# Start responder on the remote host via ssh
-		#self.start_remote_responder()
-
 		# Get remote responder output and initialise stats
 		self.update(0.1)
-
-
-
-	# Starts the responder script on the remote host
-	def start_remote_responder(self):
-
-		# Get the path to the rm_respond applet, assumed to be in the same
-		# directory, mounted at the same place in the filesystem on the remote host.
-		pathname = os.path.dirname(sys.argv[0])
-		abspath = os.path.abspath(pathname)
-
-		# Open subprocess via ssh on remote, pipe everything into /dev/null.
-		command = 'ssh %s %s/rm_respond.py %s %d' % (self.address, abspath, self.name, self.port)
-		self.process = subprocess.Popen(shlex.split(command),
-										stdout = subprocess.DEVNULL,
-										stderr = subprocess.DEVNULL)
-
-
-	# Repeatedly try to ping the remote responder until it succeeds
-	def test_remote_responder(self):
-		trycount = 0
-		while True:
-			try:
-				if self.send_request('REQUEST_PING') != 'REQUEST_PING_ACK':
-					print('Failed to initialise remote host responder - response invalid.')
-					sys.exit(1)
-				else:
-					break
-			except ConnectionRefusedError:
-				if trycount == SOCK_CONNECT_TRY_LIMIT:
-					print('Failed to initialise remote host responder - connection timeout.')
-					sys.exit(1)
-				else:
-					time.sleep(SOCK_CONNECT_TRY_DELAY)
-					trycount = trycount + 1
 
 
 	# Send request and recieve response
