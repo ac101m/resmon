@@ -22,6 +22,31 @@ ARGS = None
 
 
 
+# Gets hosts from a list in a file
+def get_hosts_from_file(hostfile):
+	hosts = []
+	fp = None
+
+	# Open the specified file
+	try: fp = open(hostfile, 'r')
+	except:
+		print("Error, could not open '%s'" % hostfile)
+		exit(1)
+
+	# Parse the file
+	lines = fp.read().split('\n')
+	for line in lines:
+		names = list(filter(None, line.split(' ')))
+		for name in names:
+			if name[0] == '#': break
+			hosts.append(resmon_host(name, COMM_PORT))
+
+	# Close file and return
+	fp.close()
+	return hosts
+
+
+
 # Starts the timer thread and returns it
 def start_timer_thread(delay):
 
@@ -97,13 +122,21 @@ def main(screen):
 	screen.erase()
 	screen.refresh()
 
+	# Get hosts from file or command line
+	hosts = []
+	if ARGS.hostfile != None:
+		hosts = get_hosts_from_file(ARGS.hostfile)
+	if ARGS.hosts != None:
+		for name in ARGS.hosts:
+			hosts.append(resmon_host(name, COMM_PORT))
+
+	# Make sure we have some hosts to monitor
+	if len(hosts) == 0:
+		print("Error, no hosts specified, exiting.")
+		exit(1)
+
 	# Start the wait thread thread for non blocking delay
 	timer_thread = start_timer_thread(ARGS.delay)
-
-	# Intialise array of hosts
-	hosts = []
-	for address in ARGS.addresses:
-		hosts.append(resmon_host(address, COMM_PORT))
 
 	# Define a resize handler
 	def resize_handler(*args):
@@ -135,14 +168,17 @@ def build_option_parser():
 	# Brief description of script
 	parser = argparse.ArgumentParser(description = 'Monitor resource usage on a number of remote hosts.')
 
-	# Add address information to the arguments
+	# Hosts to monitor file and no file
 	parser.add_argument(
-		'-a', '--addresses', nargs = '+', required = True,
-		help = 'List of remote hosts to monitor. Uses passwordless ssh to connect.')
+		'-H', '--hosts', nargs = '+', type = str,
+		help = 'List of remote hosts to connect with.')
+	parser.add_argument(
+		'-f', '--hostfile', type = str,
+		help = "Path to hostfile where hostnames are defined.")
 
 	# Allows user to set update delay
 	parser.add_argument(
-		'-d', '--delay', type = float, default = 1, required = False,
+		'-d', '--delay', type = float, default = 0.1, required = False,
 		help = 'Set delay between updates in seconds.')
 
 	# Return the constructed parser
@@ -161,4 +197,4 @@ if __name__ == '__main__':
 	try:
 		wrapper(main)		# This is a curses application
 	except KeyboardInterrupt:
-		print('Recieved KB interrupt, quitting monitor.')
+		print('Received KB interrupt, quitting monitor.')
