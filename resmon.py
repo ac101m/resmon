@@ -21,6 +21,7 @@ COMM_PORT = 9867
 ARGS = None
 
 
+
 # Starts the timer thread and returns it
 def start_timer_thread(delay):
 
@@ -30,6 +31,7 @@ def start_timer_thread(delay):
 
 	# Return the thread so that we can wait on it to achieve a delay
 	return thread
+
 
 
 # Re-draw the screen
@@ -69,6 +71,7 @@ def redraw(screen, hosts):
 	screen.refresh()
 
 
+
 # Update hosts in parallel
 def update_hosts(hosts, timeout):
 	threads = []
@@ -78,6 +81,7 @@ def update_hosts(hosts, timeout):
 		threads.append(thread)
 	for thread in threads:
 		thread.join()
+
 
 
 # Main routine
@@ -124,6 +128,7 @@ def main(screen):
 		update_hosts(hosts, timeout = ARGS.delay / 2)
 
 
+
 # Builds the command line parameter parser
 def build_option_parser():
 
@@ -140,6 +145,7 @@ def build_option_parser():
 
 	# Return the constructed parser
 	return parser
+
 
 
 # Make this behave like a boring old c program
