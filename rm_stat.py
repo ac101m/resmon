@@ -91,6 +91,7 @@ class resmon_memory:
 	mem_avail = None
 	mem_buf = None
 	mem_cache = None
+	mem_user = None
 
 	# Page file
 	swap_total = None
@@ -117,6 +118,9 @@ class resmon_memory:
 			if 'SwapTotal' in line:		self.swap_total 	= int(list(filter(bool, line.split(' ')))[1]) * 1024
 			if 'SwapFree' in line:		self.swap_free 		= int(list(filter(bool, line.split(' ')))[1]) * 1024
 
+		# User process memory
+		self.mem_user = (self.mem_total - self.mem_free) - (self.mem_cache + self.mem_buf)
+
 
 	# Render memory and swap bars
 	def render(self, screen, position, length):
@@ -135,29 +139,41 @@ class resmon_memory:
 	# Render memory bar
 	def render_mem(self, screen, position, length):
 
+		# Segment value
+		chunk_value = self.mem_total / (length - 2)
+
+		# Generate usage string
+		usage_string = '%s/%s' % (mem_string(self.mem_user), mem_string(self.mem_total))
+
+		# Color table for RAM
+		col = [(self.mem_user, curses.color_pair(3)),
+			   (self.mem_buf, curses.color_pair(5)),
+			   (self.mem_cache, curses.color_pair(4)),
+			   (self.mem_free, curses.color_pair(9))]
+
 		# Print the start of the bar
 		label = 'Mem '
 		screen.move(position.y, position.x - len(label))
 		screen.addstr(label)
 		screen.addstr('[')
 
-		# Segment value
-		segment_value = self.mem_total / (length - 2)
-		mem_used = self.mem_total - self.mem_free
-		usage_string = '%s/%s' % (mem_string(mem_used), mem_string(self.mem_total))
-
 		# Draw the bar
-		current_col = curses.color_pair(3)
-		j = 0; k = 0
+		current_col = None
+		j = 0; k = 0; col_threshold = 0
 		for i in range(0, length - 2):
 
-			# Do color stuff
-			if (i + 0.5) * segment_value >= self.mem_total - self.mem_free:
-				current_col = curses.color_pair(9)
+			# Do colour stuff
+			while True:
+				if i * chunk_value >= col_threshold:
+					col_threshold += col[k][0]
+					current_col = col[k][1]
+					k += 1
+				else:
+					break
 
 			# Do character stuff
 			if i < (length - 2) - len(usage_string):
-				if (i + 0.5) * segment_value < self.mem_total - self.mem_free:
+				if (i + 0.5) * chunk_value < self.mem_total - self.mem_free:
 					screen.addstr('|', current_col)
 				else:
 					screen.addstr(' ')
