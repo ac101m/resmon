@@ -101,7 +101,7 @@ def redraw(screen, hosts):
 def update_hosts(hosts, timeout):
 	threads = []
 	for host in hosts:
-		thread = threading.Thread(target = host.update(timeout))
+		thread = threading.Thread(target = host.update, args = (timeout,))
 		thread.start()
 		threads.append(thread)
 	for thread in threads:
