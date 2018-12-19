@@ -17,7 +17,11 @@ from utils import vec2
 
 
 # constants
+<<<<<<< HEAD
 DEFAULT_SOCKET_TIMEOUT = 0.1
+=======
+DEFAULT_SOCKET_TIMEOUT 0.1
+>>>>>>> 498d535c820e9decbfd8c7c57bca85410fe7f305
 
 
 # Host status constants
