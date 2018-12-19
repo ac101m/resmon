@@ -136,12 +136,14 @@ def build_option_parser():
 	parser = argparse.ArgumentParser(description = 'Monitor resource usage on a number of remote hosts.')
 
 	# Add address information to the arguments
-	parser.add_argument('-a', '--addresses', nargs = '+', required = True,
-						help = 'List of remote hosts to monitor. Uses passwordless ssh to connect.')
+	parser.add_argument(
+		'-a', '--addresses', nargs = '+', required = True,
+		help = 'List of remote hosts to monitor. Uses passwordless ssh to connect.')
 
 	# Allows user to set update delay
-	parser.add_argument('-d', '--delay', type = float, default = 1, required = False,
-						help = 'Set delay between updates in seconds.')
+	parser.add_argument(
+		'-d', '--delay', type = float, default = 1, required = False,
+		help = 'Set delay between updates in seconds.')
 
 	# Return the constructed parser
 	return parser

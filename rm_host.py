@@ -17,11 +17,7 @@ from utils import vec2
 
 
 # constants
-<<<<<<< HEAD
 DEFAULT_SOCKET_TIMEOUT = 0.1
-=======
-DEFAULT_SOCKET_TIMEOUT 0.1
->>>>>>> 498d535c820e9decbfd8c7c57bca85410fe7f305
 
 
 # Host status constants
@@ -42,6 +38,7 @@ class resmon_host:
 
 	# Host connection status
 	status = RM_HOST_OFFLINE
+	status_reason = ""
 	status_trycount = 0
 
 	# Stat struct
@@ -86,11 +83,12 @@ class resmon_host:
 	# Update CPU utilisation
 	def update(self, timeout = DEFAULT_SOCKET_TIMEOUT):
 
-		# Try to get the data
+		# Try to get the raw stats
 		try:
 			stat_raw = self.send_request('REQUEST_STAT', timeout)
-		except timeout:
+		except socket.error as e:
 			self.status = RM_HOST_OFFLINE
+			self.status_reason = '%s' % e
 			return
 
 		# Update stats, initialise if not initialised already
@@ -112,11 +110,12 @@ class resmon_host:
 
 		# Print the status of the connection
 		if self.status == RM_HOST_ONLINE:
-		 	screen.addstr('CONNECTED', curses.color_pair(3))
+			screen.addstr('CONNECTED', curses.color_pair(3))
 		elif self.status == RM_HOST_OFFLINE:
-		 	screen.addstr('OFFLINE', curses.color_pair(2))
+			screen.addstr('OFFLINE', curses.color_pair(2))
+			screen.addstr(' - %s' % self.status_reason)
 		else:
-		 	screen.addstr('? UNKONWN ?')
+			screen.addstr('? UNKONWN ?')
 
 		# Return the number of lines used
 		return 1
