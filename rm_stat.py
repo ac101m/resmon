@@ -63,8 +63,16 @@ class resmon_stat:
 	# Render CPU and memory
 	def render(self, screen, position, width):
 
-		# Temporary, will do proper core placement math here
-		cores_per_line = 4
+		# Calculate the number of cores per line
+		cores_per_line = 2
+		core_count = len(self.cpu.cores)
+		while True:
+			if (core_count / cores_per_line) < 6:
+				if (core_count % cores_per_line) == 0:
+					break
+			cores_per_line += 1
+
+		# Work out the size of display bars
 		core_bar_length = int(width / cores_per_line)
 		core_line_length = core_bar_length * cores_per_line
 		mem_bar_length = int(core_line_length / 2)
