@@ -2,7 +2,7 @@
 
 #
 # Simple shell script to install the remote responder
-# Must be run with elevated priveliges
+# Must be run with elevated privileges
 #
 
 # Cop
