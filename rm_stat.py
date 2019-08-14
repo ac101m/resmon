@@ -203,7 +203,7 @@ class resmon_memory:
 		screen.addstr('[')
 
 		# Segment value
-		segment_value = self.mem_total / (length - 2)
+		segment_value = self.swap_total / (length - 2)
 		swap_used = self.swap_total - self.swap_free
 		usage_string = '%s/%s' % (mem_string(swap_used), mem_string(self.swap_total))
 
