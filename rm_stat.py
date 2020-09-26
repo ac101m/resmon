@@ -160,7 +160,7 @@ class resmon_memory:
 		col = [(self.mem_user, curses.color_pair(3)),
 			   (self.mem_buf, curses.color_pair(5)),
 			   (self.mem_cache, curses.color_pair(4)),
-			   (self.mem_free, curses.color_pair(9))]
+			   (self.mem_free, curses.color_pair(9 if curses.COLORS > 9 else 0))]
 
 		# Print the start of the bar
 		label = 'Mem '
