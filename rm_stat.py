@@ -64,13 +64,16 @@ class resmon_stat:
 	def render(self, screen, position, width):
 
 		# Calculate the number of cores per line
-		cores_per_line = 2
+		# First find all factor pairs for the core count
 		core_count = len(self.cpu.cores)
-		while True:
-			if (core_count / cores_per_line) < 6:
-				if (core_count % cores_per_line) == 0:
-					break
-			cores_per_line += 1
+		candidates = [i for i in range(1, core_count) if core_count % i == 0]
+
+		# Then select one that does't make the bars too short
+		cores_par_line = 1
+		for i, candidate in enumerate(candidates):
+			if (width / candidate) < 12:
+				break
+			cores_per_line = candidate
 
 		# Work out the size of display bars
 		core_bar_length = int(width / cores_per_line)
