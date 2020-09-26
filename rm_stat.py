@@ -367,8 +367,8 @@ class resmon_core:
 			   (self.system, curses.color_pair(2)),
 			   (self.irq, curses.color_pair(4)),
 			   (self.softirq, curses.color_pair(6)),
-			   (self.iowait, curses.color_pair(9)),
-			   (self.idle, curses.color_pair(9))]
+			   (self.iowait, curses.color_pair(9 if curses.COLORS > 9 else 0)),
+			   (self.idle, curses.color_pair(9 if curses.COLORS > 9 else 0))]
 
 		# Move the cursor and begin rendering
 		screen.move(position.y, position.x)
