@@ -214,12 +214,12 @@ class resmon_memory:
 		for i in range(0, length - 2):
 
 			# Do color stuff
-			if (i + 0.5) * segment_value >= self.swap_total - self.swap_free:
-				current_col = curses.color_pair(9)
+			if (i + 0.5) * segment_value >= swap_used:
+				current_col = curses.color_pair(9 if curses.COLORS > 9 else 0)
 
 			# Do character stuff
 			if i < (length - 2) - len(usage_string):
-				if (i + 0.5) * segment_value < self.swap_total - self.swap_free:
+				if (i + 0.5) * segment_value < swap_used:
 					screen.addstr('|', current_col)
 				else:
 					screen.addstr(' ')
