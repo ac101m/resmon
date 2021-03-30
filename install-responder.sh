@@ -5,21 +5,26 @@
 # Must be run with elevated privileges
 #
 
-# Cop
-mkdir ~/.resmon/
-sudo cp ./rm_respond.py ~/.resmon
+# Install in /usr/local/resmon
+RESMON_INSTALL_DIR="/usr/local/resmon"
 
-# Create the systemd file
+# Copy resmon files
+sudo mkdir -p "$RESMON_INSTALL_DIR"
+sudo cp ./rm_respond.py "$RESMON_INSTALL_DIR"
+
+# Create the systemd unit file
 DFILE="/lib/systemd/system/resmon.responder.service"
-sudo echo "[Unit]" > $DFILE
-sudo echo "Description=Remote responder for the resmon cluster monitor." >> $DFILE
-sudo echo "[Service]" >> $DFILE
-sudo echo "Type=simple" >> $DFILE
-sudo echo "ExecStart=/usr/bin/python3 /home/ac/.resmon/rm_respond.py 9867" >> $DFILE
-sudo echo "[Install]" >> $DFILE
-sudo echo "WantedBy=multi-user.target" >> $DFILE
+sudo printf "[Unit]\n" | sudo tee "$DFILE"
+sudo printf "Description=Remote responder for the resmon cluster monitor.\n" | sudo tee -a "$DFILE"
+sudo printf "\n[Service]\n" | sudo tee -a "$DFILE"
+sudo printf "uid=$USER\n" | sudo tee -a "$DFILE"
+sudo printf "gid=$USER\n" | sudo tee -a "$DFILE"
+sudo printf "Type=simple\n" | sudo tee -a "$DFILE"
+sudo printf "ExecStart=/usr/bin/python3 $RESMON_INSTALL_DIR/rm_respond.py 9867\n" | sudo tee -a "$DFILE"
+sudo printf "\n[Install]\n" | sudo tee -a "$DFILE"
+sudo printf "WantedBy=multi-user.target\n" | sudo tee -a "$DFILE"
 
-# Set up the systemd service
+# Ge the daemon running
 sudo systemctl daemon-reload
 sudo systemctl enable resmon.responder
 sudo service resmon.responder start
